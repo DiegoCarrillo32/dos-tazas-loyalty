@@ -1,0 +1,4 @@
+# Supabase CLI local state. .temp/start-secrets/ holds generated container
+# secrets, so this must not be committed.
+.branches
+.temp
