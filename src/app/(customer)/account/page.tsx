@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AccountPanel } from "@/components/AccountPanel";
+import { StaffAccountPanel } from "@/components/StaffAccountPanel";
 import { SignInPanel } from "@/components/SignInPanel";
 import { signCardToken } from "@/lib/crypto";
 import { createClient } from "@/lib/supabase/server";
@@ -35,11 +36,20 @@ export default async function AccountPage({
     return <SignInPanel authError={authError} />;
   }
 
+  // Staff reach this page too — a barista who taps the logo, or signs in here
+  // out of habit. They must not be asked for a cédula: their job is the
+  // scanner. If they also happen to hold a card, it renders below as usual.
+  const { data: isStaff } = await supabase.rpc("is_staff");
+
   const { data: member } = await supabase
     .from("members")
     .select("card_token, full_name, national_id, points_balance, tier, auth_user_id")
     .eq("auth_user_id", userData.user.id)
     .maybeSingle();
+
+  if (!member && isStaff) {
+    return <StaffAccountPanel email={userData.user.email ?? ""} />;
+  }
 
   if (!member) {
     // Google hands back the profile in user_metadata, so the name field can be

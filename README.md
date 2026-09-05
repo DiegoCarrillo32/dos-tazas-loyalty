@@ -231,6 +231,20 @@ Verified end to end locally: recovery token → `/auth/confirm` → session cook
 `/reset-password` → password changed → old password rejected, new one accepted, and
 a replayed token refused with `?error=link`.
 
+## Staff vs customers — one auth system
+
+There is **no separate admin login**. Staff and customers are both Supabase auth
+users; being staff is a row in `public.staff`, nothing more. `/admin/login` and
+`/account` are two doors into the same auth system, styled for their audience.
+
+That means a barista can land on a customer page perfectly legitimately, and
+`requireCompleteProfile()` therefore exempts staff — asking a barista for a
+cédula before showing them anything was a bug that blocked the till. A staff
+member with no card sees a panel pointing at the scanner instead.
+
+Staff and customer are not mutually exclusive: a barista may register their own
+card and it renders normally. It is offered, never required.
+
 ## Completing a profile
 
 An account with no card can neither earn nor redeem, so signing in without one
