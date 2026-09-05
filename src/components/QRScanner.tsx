@@ -9,6 +9,7 @@ import { CameraOff, Keyboard } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Alert, Button, Field, Input } from "@/design-system";
+import { QR_PREFIX } from "@/lib/crypto-shared";
 import { cn } from "@/lib/utils";
 
 const ELEMENT_ID = "dos-tazas-qr-reader";
@@ -62,7 +63,11 @@ export function QRScanner({
   onScan,
   disabled,
 }: {
-  onScan: (payload: string) => void;
+  /**
+   * A camera decode always yields a payload. Manual entry yields whichever the
+   * barista typed — the caller decides what to do with each.
+   */
+  onScan: (input: { payload: string } | { nationalId: string }) => void;
   disabled?: boolean;
 }) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -78,7 +83,7 @@ export function QRScanner({
 
       // Release the camera before handing off, so it is not held while the
       // barista works through the result panel.
-      void safeStop(scannerRef.current).then(() => onScan(text));
+      void safeStop(scannerRef.current).then(() => onScan({ payload: text }));
     },
     [onScan]
   );
@@ -116,7 +121,16 @@ export function QRScanner({
   function submitManual(event: React.FormEvent) {
     event.preventDefault();
     const value = manualValue.trim();
-    if (value) onScan(value);
+    if (!value) return;
+
+    // A barista types whichever they have. Signed payloads always start with
+    // the QR prefix; anything else is treated as a cédula, which is the number
+    // they actually know and the one the customer-facing copy points them at.
+    if (value.toUpperCase().startsWith(`${QR_PREFIX}.`)) {
+      onScan({ payload: value });
+    } else {
+      onScan({ nationalId: value });
+    }
   }
 
   return (
@@ -149,23 +163,23 @@ export function QRScanner({
 
       {status === "error" && (
         <Alert tone="warning" title="No pudimos abrir la cámara" icon={<CameraOff />}>
-          Revisá los permisos del navegador. También podés ingresar el código a mano.
+          Revisá los permisos del navegador. También podés buscar al cliente por su cédula.
         </Alert>
       )}
 
       {manualOpen ? (
         <form onSubmit={submitManual} className="space-y-3">
           <Field
-            label="Código de la tarjeta"
+            label="Cédula del cliente"
             htmlFor="manual-payload"
-            hint="El texto que aparece bajo el QR del cliente."
+            hint="También podés pegar el código que aparece bajo el QR."
           >
             <Input
               id="manual-payload"
               maxLength={200}
               value={manualValue}
               onChange={(e) => setManualValue(e.target.value)}
-              placeholder="DT1.…"
+              placeholder="1 2345 6789"
               autoComplete="off"
               autoCapitalize="off"
               spellCheck={false}
@@ -189,7 +203,7 @@ export function QRScanner({
           leadingIcon={<Keyboard />}
           onClick={() => setManualOpen(true)}
         >
-          Ingresar código a mano
+          Buscar por cédula
         </Button>
       )}
     </div>

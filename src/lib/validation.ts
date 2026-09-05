@@ -71,9 +71,16 @@ export const credentialsSchema = z.object({
 
 const uuidSchema = z.string().uuid();
 
-export const validateScanSchema = z.object({
-  payload: z.string().min(1).max(200),
-});
+/**
+ * A scan can arrive two ways: the camera produces a signed payload, and the
+ * manual fallback accepts either that payload or a plain cédula — because the
+ * cédula is what a barista actually knows, and what the customer-facing copy
+ * tells people the till uses.
+ */
+export const validateScanSchema = z.union([
+  z.object({ payload: z.string().min(1).max(200) }),
+  z.object({ nationalId: nationalIdSchema }),
+]);
 
 export const pointsSchema = z.discriminatedUnion("action", [
   z.object({

@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { QR_PREFIX } from "./crypto-shared";
 import { getQrSecret } from "./supabase/env";
 
 /**
@@ -26,7 +27,9 @@ import { getQrSecret } from "./supabase/env";
  * live in route handlers rather than in the card component.
  */
 
-export const QR_PREFIX = "DT1";
+// Re-exported so server code has one import for everything crypto-related,
+// while client components import the constant alone from crypto-shared.
+export { QR_PREFIX } from "./crypto-shared";
 
 /** 32 base64url chars ≈ 192 bits — far past forgery reach, and short enough
  *  that the QR stays low-density and scans fast on a cheap phone camera. */

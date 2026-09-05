@@ -13,17 +13,20 @@ import { ScanResultPanel } from "./ScanResultPanel";
 type Phase =
   | { name: "scanning" }
   | { name: "loading" }
-  | { name: "result"; payload: string; result: ScanResult }
+  | { name: "result"; result: ScanResult }
   | { name: "error"; message: string };
 
 export function ScannerWorkspace() {
   const [phase, setPhase] = useState<Phase>({ name: "scanning" });
 
-  async function handleScan(payload: string) {
+  async function handleScan(input: { payload: string } | { nationalId: string }) {
     setPhase({ name: "loading" });
     try {
-      const result = await postJson<ScanResult>("/api/validate-scan", { payload });
-      setPhase({ name: "result", payload, result });
+      // The response carries its own freshly signed payload, so the camera path
+      // and the cédula path produce an identical result and later mutations
+      // have exactly one thing to send.
+      const result = await postJson<ScanResult>("/api/validate-scan", input);
+      setPhase({ name: "result", result });
     } catch (err) {
       setPhase({
         name: "error",
@@ -39,7 +42,6 @@ export function ScannerWorkspace() {
   if (phase.name === "result") {
     return (
       <ScanResultPanel
-        payload={phase.payload}
         result={phase.result}
         onUpdated={(next) => setPhase({ ...phase, result: next })}
         onDone={reset}

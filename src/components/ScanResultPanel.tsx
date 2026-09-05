@@ -24,12 +24,10 @@ import { LedgerList } from "./LedgerList";
 const COLONES_PER_POINT = 1000;
 
 export function ScanResultPanel({
-  payload,
   result,
   onUpdated,
   onDone,
 }: {
-  payload: string;
   result: ScanResult;
   onUpdated: (next: ScanResult) => void;
   onDone: () => void;
@@ -63,7 +61,7 @@ export function ScanResultPanel({
     try {
       const res = await postJson<PointsMutationResult>("/api/points", {
         action: "earn",
-        payload,
+        payload: result.qrPayload,
         amount: parsedAmount,
         clientRequestId,
       });
@@ -90,7 +88,7 @@ export function ScanResultPanel({
     try {
       const res = await postJson<PointsMutationResult>("/api/points", {
         action: "redeem",
-        payload,
+        payload: result.qrPayload,
         rewardId: reward.id,
         clientRequestId,
       });

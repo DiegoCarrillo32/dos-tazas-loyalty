@@ -39,7 +39,7 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   },
   not_found: {
     status: 404,
-    message: "No encontramos una tarjeta con esos datos. Revisá la cédula y el teléfono.",
+    message: "No encontramos una tarjeta con esos datos.",
   },
   reward_not_found: {
     status: 404,

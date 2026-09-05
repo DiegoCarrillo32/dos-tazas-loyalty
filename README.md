@@ -231,6 +231,24 @@ Verified end to end locally: recovery token → `/auth/confirm` → session cook
 `/reset-password` → password changed → old password rejected, new one accepted, and
 a replayed token refused with `?error=link`.
 
+## Finding a customer at the till
+
+The scanner takes a QR **or a cédula**. The camera path yields a signed payload;
+the manual field accepts either, deciding by whether the text starts with `DT1.`
+— a barista types whichever they have, and the cédula is the number they
+actually know.
+
+`staff_lookup_by_cedula()` is gated on `is_staff()`. This is not the anonymous
+lookup removed in migration 00009: that one was callable by anyone, and a cédula
+is semi-public, so it leaked names and balances to strangers. Staff can already
+read every member row through `members_select_staff`, so this grants a barista
+nothing new — it just saves a query they could already run. Verified: `anon`
+calling it gets `permission denied`.
+
+Both paths return the same shape including a freshly minted `qrPayload`, so
+point mutations send one representation and `/api/points` has exactly one thing
+to verify.
+
 ## Staff vs customers — one auth system
 
 There is **no separate admin login**. Staff and customers are both Supabase auth

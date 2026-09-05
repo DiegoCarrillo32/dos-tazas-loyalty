@@ -133,6 +133,10 @@ export interface Database {
         Args: { p_card_token: string };
         Returns: Json;
       };
+      staff_lookup_by_cedula: {
+        Args: { p_national_id: string };
+        Returns: Json;
+      };
       staff_add_points: {
         Args: { p_card_token: string; p_purchase_amount: number; p_client_request_id: string };
         Returns: Json;

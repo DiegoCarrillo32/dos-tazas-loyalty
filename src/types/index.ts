@@ -38,6 +38,12 @@ export interface LedgerEntry {
 /** What the barista sees after a successful scan. */
 export interface ScanResult {
   cardToken: string;
+  /**
+   * Signed QR payload for this card, minted server-side. Point mutations always
+   * send this rather than whatever the scanner read, so the camera path and the
+   * cédula path converge on one representation.
+   */
+  qrPayload: string;
   fullName: string;
   pointsBalance: number;
   tier: MemberTier;
