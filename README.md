@@ -281,7 +281,25 @@ brand tokens (`globals.css`), the warm palette, Gotham/Titan One and 31
 components; `Surface` is the card primitive (there is no `Card`), and headings
 use the `font-heading` utility (there is no `Typography`).
 
-UI copy is Spanish only.
+UI copy is Spanish only, and the app defaults to **light mode** regardless of
+the device setting — the brand is a warm cream pergamino and the loyalty card is
+exported as a fixed light-mode PNG, so a customer opening this in the café
+should see what the shop looks like. An explicit choice stored in
+`localStorage.theme` still wins.
+
+### Duplicate cédulas
+
+`members.national_id` carries a UNIQUE constraint, and `register_member()`
+catches `unique_violation` and raises `member_exists` (HTTP 409). Verified with
+10 simultaneous registrations of one cédula: exactly **one** row and **one**
+card were created; the other nine were refused. Normalization runs first, so
+`1-2345-6789`, `123456789` and `1 2345 6789` are the same key.
+
+What this does **not** do is verify that a cédula belongs to the person typing
+it. Whoever registers it first owns that card, and there is no way to check
+ownership without seeing an ID — so that check belongs at the counter. A member
+who finds their cédula already taken is shown the "connect your card" path,
+which needs the signed QR; failing that, a barista has to intervene.
 
 ### Two design-system bugs worked around here
 

@@ -24,12 +24,20 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="es" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        {/* Apply the saved theme before paint to avoid a flash. */}
+        {/*
+          Apply the theme before paint to avoid a flash.
+
+          The default is 'light', not 'system': the brand is a warm cream
+          pergamino, the loyalty card is exported as a fixed light-mode PNG, and
+          a customer opening this in a café should get the same look as the shop.
+          A visitor who explicitly picks dark still gets it — the stored value
+          wins over this default.
+        */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const theme = localStorage.getItem('theme') || 'system';
+                const theme = localStorage.getItem('theme') || 'light';
                 if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.documentElement.classList.add('dark');
                 } else {
@@ -41,7 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body className="min-h-full bg-background text-foreground transition-colors duration-200">
-        <ThemeProvider>
+        <ThemeProvider defaultTheme="light">
           {children}
           <Toaster />
         </ThemeProvider>

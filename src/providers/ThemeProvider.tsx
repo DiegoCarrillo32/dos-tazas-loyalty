@@ -28,8 +28,19 @@ const applyThemeClass = (t: Theme) => {
   }
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
+export function ThemeProvider({
+  children,
+  defaultTheme = 'system',
+}: {
+  children: React.ReactNode
+  /**
+   * What to use when the visitor has never chosen a theme. Upstream this was
+   * hard-coded to 'system'; it is a prop so an app can opt out of following the
+   * OS without forking this file.
+   */
+  defaultTheme?: Theme
+}) {
+  const [theme, setThemeState] = useState<Theme>(defaultTheme)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme | null
@@ -38,19 +49,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setThemeState(savedTheme)
       applyThemeClass(savedTheme)
     } else {
-      applyThemeClass('system')
+      applyThemeClass(defaultTheme)
     }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = () => {
       const currentSaved = localStorage.getItem('theme') as Theme | null
-      if (currentSaved === 'system' || !currentSaved) {
+      // Only track the OS when 'system' is the active choice. With a 'light'
+      // default an unset preference must NOT follow the OS, or the page would
+      // flip to dark the moment the visitor's device did.
+      if (currentSaved === 'system' || (!currentSaved && defaultTheme === 'system')) {
         applyThemeClass('system')
       }
     }
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
+  }, [defaultTheme])
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme)
