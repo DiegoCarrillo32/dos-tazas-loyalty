@@ -162,6 +162,7 @@ export function QRScanner({
           >
             <Input
               id="manual-payload"
+              maxLength={200}
               value={manualValue}
               onChange={(e) => setManualValue(e.target.value)}
               placeholder="DT1.…"

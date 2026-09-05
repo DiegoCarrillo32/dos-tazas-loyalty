@@ -1,27 +1,42 @@
 "use client";
 
-import { Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Alert, Button, Field, Input, Surface, toast } from "@/design-system";
 import { createClient } from "@/lib/supabase/client";
+import { credentialsSchema } from "@/lib/validation";
+import { GoogleMark } from "./GoogleMark";
 import { PageHeader } from "./PageHeader";
 import { UpgradeBenefits } from "./UpgradeBenefits";
 
+type Mode = "signin" | "signup";
+
 /**
- * Sign-in for the upgraded tier: Google OAuth, or a magic link by email.
+ * Account sign-in: Google, or email + password.
  *
- * Magic link rather than email + password on purpose. This whole product is
- * built around not asking a coffee customer to invent and remember a password,
- * and adding one here only for the optional tier would be an odd place to
- * start. It also removes password reset, rotation and storage from scope.
+ * Everything here delegates to Supabase Auth. No password is hashed, stored,
+ * compared or reset by this app — that machinery already exists, is tested, and
+ * gets security fixes without us. It is also what makes "Google and password
+ * reach the same account" true for free: Supabase attaches an OAuth identity to
+ * the existing user with the same confirmed email.
  */
-export function SignInPanel() {
+export function SignInPanel({ authError }: { authError?: string }) {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    authError === "link"
+      ? "Ese enlace ya venció o fue usado. Pedí uno nuevo."
+      : authError === "auth"
+        ? "No pudimos completar el inicio de sesión. Intentá de nuevo."
+        : null
+  );
 
   async function signInWithGoogle() {
     setError(null);
@@ -33,31 +48,75 @@ export function SignInPanel() {
     if (oauthError) setError("No pudimos conectar con Google. Intentá de nuevo.");
   }
 
-  async function signInWithEmail(event: React.FormEvent) {
+  async function submitCredentials(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setSending(true);
+
+    const parsed = credentialsSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Revisá los datos.");
+      return;
+    }
+
+    setBusy(true);
     try {
       const supabase = createClient();
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+
+      if (mode === "signup") {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+        });
+        if (signUpError) throw signUpError;
+        setSent(true);
+        toast.success("Revisá tu correo", "Te enviamos un enlace para confirmar tu cuenta.");
+        return;
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
       });
-      if (otpError) throw otpError;
-      setSent(true);
-      toast.success("Revisá tu correo", "Te enviamos un enlace para entrar.");
+      if (signInError) {
+        // One message for a wrong password and an unknown address alike: telling
+        // them apart would confirm which emails have accounts here.
+        setError("Correo o contraseña incorrectos.");
+        return;
+      }
+      router.refresh();
     } catch {
-      setError("No pudimos enviar el enlace. Revisá el correo e intentá de nuevo.");
+      setError("No pudimos completar la operación. Intentá de nuevo.");
     } finally {
-      setSending(false);
+      setBusy(false);
+    }
+  }
+
+  async function sendReset() {
+    const parsed = credentialsSchema.shape.email.safeParse(email);
+    if (!parsed.success) {
+      setError("Escribí tu correo primero y volvé a tocar “Olvidé mi contraseña”.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.resetPasswordForEmail(parsed.data, {
+        redirectTo: `${window.location.origin}/auth/confirm?next=/reset-password`,
+      });
+      // Always report success: whether an address has an account is not
+      // something this form should reveal.
+      toast.success("Revisá tu correo", "Si esa dirección tiene cuenta, te enviamos un enlace.");
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Mejorá tu cuenta"
-        subtitle="Vinculá tu tarjeta a una cuenta y desbloqueá beneficios."
+        title={mode === "signup" ? "Crear mi cuenta" : "Iniciar sesión"}
+        subtitle="Consultá tus puntos desde cualquier dispositivo."
       />
 
       <Surface>
@@ -78,52 +137,86 @@ export function SignInPanel() {
           </div>
 
           {sent ? (
-            <Alert tone="success" title="Enlace enviado">
-              Abrí el correo que te mandamos a <strong>{email}</strong> para entrar.
+            <Alert tone="success" title="Revisá tu correo">
+              Te enviamos un enlace a <strong>{email}</strong> para confirmar tu cuenta.
             </Alert>
           ) : (
-            <form onSubmit={signInWithEmail} className="space-y-4">
-              <Field label="Correo electrónico" htmlFor="email">
+            <form onSubmit={submitCredentials} className="space-y-4">
+              <Field label="Correo electrónico" htmlFor="email" required>
                 <Input
                   id="email"
+              maxLength={254}
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="maria@correo.com"
                   autoComplete="email"
-                  disabled={sending}
+                  disabled={busy}
                   leadingIcon={<Mail />}
                   required
                 />
               </Field>
-              <Button variant="accent" type="submit" loading={sending} pill size="lg" className="w-full">
-                Enviarme un enlace
+
+              <Field
+                label="Contraseña"
+                htmlFor="password"
+                hint={mode === "signup" ? "Al menos 8 caracteres." : undefined}
+                required
+              >
+                <Input
+                  id="password"
+              maxLength={128}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  disabled={busy}
+                  leadingIcon={<Lock />}
+                  required
+                />
+              </Field>
+
+              {error && <Alert tone="danger">{error}</Alert>}
+
+              <Button variant="accent" type="submit" loading={busy} pill size="lg" className="w-full">
+                {mode === "signup" ? "Crear cuenta" : "Entrar"}
               </Button>
             </form>
           )}
 
-          {error && <Alert tone="danger">{error}</Alert>}
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <button
+              type="button"
+              className="font-bold text-coffee-fruit hover:underline"
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setError(null);
+                setSent(false);
+              }}
+            >
+              {mode === "signin" ? "Crear una cuenta" : "Ya tengo cuenta"}
+            </button>
+
+            {mode === "signin" && (
+              <button
+                type="button"
+                className="text-expresso/60 hover:underline"
+                onClick={sendReset}
+                disabled={busy}
+              >
+                Olvidé mi contraseña
+              </button>
+            )}
+          </div>
         </div>
       </Surface>
 
       <p className="text-center text-sm text-expresso/60">
-        ¿Solo querés ver tus puntos?{" "}
-        <Link href="/loyalty" className="font-bold text-coffee-fruit hover:underline">
-          No necesitás cuenta
+        ¿Todavía no tenés tarjeta?{" "}
+        <Link href="/register" className="font-bold text-coffee-fruit hover:underline">
+          Creala en segundos
         </Link>
       </p>
     </div>
-  );
-}
-
-/** Google's mark. Inline so it works offline, like every other asset here. */
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 48 48" aria-hidden className="size-4">
-      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.6 9.5 24 9.5z" />
-      <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.2 5.6c4.2-3.9 6.6-9.6 6.6-16.4z" />
-      <path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.3.8-4.7l-7.8-6.1C.9 16.3 0 20 0 24s.9 7.7 2.6 10.8l7.8-6.1z" />
-      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.2-5.6c-2 1.4-4.6 2.2-8.7 2.2-6.4 0-11.7-3.7-13.6-9.1l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
-    </svg>
   );
 }

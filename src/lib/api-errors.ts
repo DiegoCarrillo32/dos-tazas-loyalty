@@ -57,6 +57,14 @@ const ERRORS: Record<string, { status: number; message: string }> = {
     status: 409,
     message: "Esta cuenta ya está vinculada a otra tarjeta.",
   },
+  card_already_linked: {
+    status: 409,
+    message: "Esta tarjeta ya pertenece a otra cuenta.",
+  },
+  invalid_email: {
+    status: 400,
+    message: "Ingresá un correo válido.",
+  },
   rate_limited: {
     status: 429,
     message: "Demasiados intentos. Esperá unos minutos y volvé a probar.",

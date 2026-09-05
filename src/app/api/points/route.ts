@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiError, codeFromPostgrestError } from "@/lib/api-errors";
 import { verifyQrPayload } from "@/lib/crypto";
+import { assertSameOrigin } from "@/lib/same-origin";
 import { createClient } from "@/lib/supabase/server";
 import { pointsSchema } from "@/lib/validation";
 import type { PointsMutationResult } from "@/types";
@@ -18,6 +19,9 @@ import type { PointsMutationResult } from "@/types";
  * calling this endpoint directly gets a 403 from Postgres, not points.
  */
 export async function POST(request: Request) {
+  const crossSite = assertSameOrigin(request);
+  if (crossSite) return crossSite;
+
   let body: unknown;
   try {
     body = await request.json();

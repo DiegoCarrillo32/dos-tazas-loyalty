@@ -9,21 +9,27 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/cuenta";
+  const next = searchParams.get("next") ?? "/account";
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/cuenta?error=auth`);
+    return NextResponse.redirect(`${origin}/account?error=auth`);
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(`${origin}/cuenta?error=auth`);
+    return NextResponse.redirect(`${origin}/account?error=auth`);
   }
 
   // Only ever redirect to a path on this origin — taking `next` as a full URL
   // would turn this into an open redirect from a trusted-looking auth link.
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/cuenta";
+  // The backslash check is belt-and-braces: prefixing `origin` already keeps
+  // the result local, but browsers normalize "\" inside URLs inconsistently
+  // and this removes the need to reason about which ones do.
+  const safeNext =
+    next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
+      ? next
+      : "/account";
   return NextResponse.redirect(`${origin}${safeNext}`);
 }

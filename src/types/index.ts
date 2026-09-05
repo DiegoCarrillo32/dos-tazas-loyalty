@@ -9,6 +9,8 @@ export interface MemberCard {
   nationalId: string;
   pointsBalance: number;
   tier: MemberTier;
+  /** True once the card is attached to a Supabase auth account. */
+  linked: boolean;
   /** Signed `DT1.<token>.<tag>` string — the actual QR contents. */
   qrPayload: string;
 }

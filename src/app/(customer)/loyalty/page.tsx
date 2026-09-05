@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { requireCompleteProfile } from "@/lib/require-profile";
+
 import { LoyaltyPortal } from "@/components/LoyaltyPortal";
 import { createClient } from "@/lib/supabase/server";
 import type { Reward } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Mis puntos · Dos Tazas",
+  title: "Club de Lealtad · Dos Tazas",
 };
 
 /**
@@ -15,6 +17,8 @@ export const metadata: Metadata = {
  * rewards_select_active policy in migration 00002).
  */
 export default async function LoyaltyPage() {
+  await requireCompleteProfile();
+
   const supabase = await createClient();
   const { data } = await supabase
     .from("rewards")

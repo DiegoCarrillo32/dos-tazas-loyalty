@@ -22,22 +22,46 @@ export const metadata: Metadata = {
  * members_select_own policy in migration 00002 already scopes the query to
  * `auth_user_id = auth.uid()`, so RLS is doing the filtering.
  */
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: authError } = await searchParams;
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
 
   if (!userData.user) {
-    return <SignInPanel />;
+    return <SignInPanel authError={authError} />;
   }
 
   const { data: member } = await supabase
     .from("members")
-    .select("card_token, full_name, national_id, points_balance, tier")
+    .select("card_token, full_name, national_id, points_balance, tier, auth_user_id")
     .eq("auth_user_id", userData.user.id)
     .maybeSingle();
 
   if (!member) {
-    return <AccountPanel email={userData.user.email ?? ""} card={null} rewards={[]} history={[]} />;
+    // Google hands back the profile in user_metadata, so the name field can be
+    // prefilled and the customer only has to supply the cédula. Email+password
+    // signups have no such data and type both.
+    const meta = userData.user.user_metadata ?? {};
+    const suggestedName =
+      typeof meta.full_name === "string"
+        ? meta.full_name
+        : typeof meta.name === "string"
+          ? meta.name
+          : "";
+
+    return (
+      <AccountPanel
+        email={userData.user.email ?? ""}
+        card={null}
+        rewards={[]}
+        history={[]}
+        suggestedName={suggestedName}
+      />
+    );
   }
 
   const [{ data: rewardRows }, { data: historyRows }] = await Promise.all([
@@ -59,6 +83,7 @@ export default async function AccountPage() {
     nationalId: member.national_id,
     pointsBalance: member.points_balance,
     tier: member.tier,
+    linked: member.auth_user_id !== null,
     qrPayload: signCardToken(member.card_token),
   };
 

@@ -2,11 +2,21 @@ import { NextResponse } from "next/server";
 
 import { apiError, codeFromPostgrestError } from "@/lib/api-errors";
 import { toMemberCard } from "@/lib/member-response";
+import { assertSameOrigin } from "@/lib/same-origin";
 import { createClient } from "@/lib/supabase/server";
 import { registerSchema } from "@/lib/validation";
 
-/** POST /api/loyalty/register — the no-auth onboarding. */
+/**
+ * POST /api/loyalty/register — create a card.
+ *
+ * Cédula and name only; the phone is optional contact detail. If the caller
+ * happens to have a session, register_member() attaches the new card to it, so
+ * someone signing up at home never has to claim it separately.
+ */
 export async function POST(request: Request) {
+  const crossSite = assertSameOrigin(request);
+  if (crossSite) return crossSite;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -25,8 +35,8 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("register_member", {
     p_national_id: parsed.data.nationalId,
-    p_phone: parsed.data.phone,
     p_full_name: parsed.data.fullName,
+    p_phone: parsed.data.phone ?? null,
   });
 
   if (error) return apiError(codeFromPostgrestError(error.message));

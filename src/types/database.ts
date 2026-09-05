@@ -17,11 +17,12 @@ export interface Database {
         Row: {
           id: string;
           national_id: string;
-          phone: string;
+          phone: string | null;
           full_name: string;
           card_token: string;
           auth_user_id: string | null;
           tier: "basic" | "member";
+          email: string | null;
           birthday: string | null;
           points_balance: number;
           created_at: string;
@@ -121,15 +122,11 @@ export interface Database {
     Views: Record<never, never>;
     Functions: {
       register_member: {
-        Args: { p_national_id: string; p_phone: string; p_full_name: string };
+        Args: { p_national_id: string; p_full_name: string; p_phone?: string | null };
         Returns: Json;
       };
-      lookup_member: {
-        Args: { p_national_id: string; p_phone: string };
-        Returns: Json;
-      };
-      link_member_to_auth: {
-        Args: { p_national_id: string; p_phone: string };
+      claim_member_card: {
+        Args: { p_card_token: string };
         Returns: Json;
       };
       staff_lookup_member: {

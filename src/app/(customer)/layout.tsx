@@ -3,9 +3,14 @@ import Link from "next/link";
 import { DosTazasLogo } from "@/components/DosTazasLogo";
 
 /**
- * Customer shell. Deliberately public — no session check anywhere in this
- * tree, because registering and checking points must work for someone who has
- * never had an account.
+ * Customer shell. Public by design — registering and browsing the club must
+ * work for someone who has never had an account.
+ *
+ * The incomplete-profile guard deliberately does NOT live here. A layout cannot
+ * see the current path, and driving it off a forwarded header meant that any
+ * request where the header went missing redirected /account to itself — an
+ * infinite loop. The individual pages call requireCompleteProfile() instead,
+ * where the path is known statically and cannot be got wrong.
  */
 export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   return (

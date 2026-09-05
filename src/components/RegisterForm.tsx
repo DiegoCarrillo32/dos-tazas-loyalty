@@ -8,11 +8,17 @@ import { Alert, Button, Field, Input, Surface } from "@/design-system";
 import { ApiRequestError, postJson } from "@/lib/api-client";
 import { registerSchema } from "@/lib/validation";
 import type { MemberCard } from "@/types";
-import { IdentityFields } from "./IdentityFields";
 import { LoyaltyCardPanel } from "./LoyaltyCardPanel";
 import { PageHeader } from "./PageHeader";
-import { UpgradeAccountCard } from "./UpgradeAccountCard";
+import { SaveYourCardNotice } from "./SaveYourCardNotice";
 
+/**
+ * The counter flow: cédula and name, nothing else required.
+ *
+ * The phone is optional contact detail, not a credential — nothing
+ * authenticates against it. Keeping the required fields to two is the whole
+ * point: this is filled in while someone waits for a coffee.
+ */
 export function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [nationalId, setNationalId] = useState("");
@@ -25,9 +31,6 @@ export function RegisterForm() {
     event.preventDefault();
     setError(null);
 
-    // Client-side validation exists to answer instantly, not to be trusted —
-    // /api/loyalty/register re-runs the same schema, and the RPC validates
-    // again in SQL.
     const parsed = registerSchema.safeParse({ fullName, nationalId, phone });
     if (!parsed.success) {
       setError({ code: "validation", message: parsed.error.issues[0]?.message ?? "Revisá los datos." });
@@ -36,8 +39,7 @@ export function RegisterForm() {
 
     setSubmitting(true);
     try {
-      const result = await postJson<MemberCard>("/api/loyalty/register", parsed.data);
-      setCard(result);
+      setCard(await postJson<MemberCard>("/api/loyalty/register", parsed.data));
     } catch (err) {
       if (err instanceof ApiRequestError) setError({ code: err.code, message: err.message });
       else setError({ code: "server_error", message: "Algo salió mal. Intentá de nuevo." });
@@ -51,27 +53,23 @@ export function RegisterForm() {
       <div className="space-y-6">
         <PageHeader
           title="¡Listo!"
-          subtitle="Tu tarjeta ya está activa. Guardala para mostrarla en caja."
+          subtitle="Tu tarjeta ya está activa. Mostrala en caja para acumular puntos."
         />
         <LoyaltyCardPanel card={card} />
-        <UpgradeAccountCard />
+        {!card.linked && <SaveYourCardNotice />}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Crear mi tarjeta"
-        subtitle="Sin contraseñas. Solo tu cédula y tu teléfono."
-      />
+      <PageHeader title="Crear mi tarjeta" subtitle="Solo tu cédula y tu nombre." />
 
       <Surface>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Field label="Nombre completo" htmlFor="fullName" required>
             <Input
               id="fullName"
-              name="fullName"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               autoComplete="name"
@@ -82,13 +80,41 @@ export function RegisterForm() {
             />
           </Field>
 
-          <IdentityFields
-            nationalId={nationalId}
-            phone={phone}
-            onNationalIdChange={setNationalId}
-            onPhoneChange={setPhone}
-            disabled={submitting}
-          />
+          <Field
+            label="Cédula"
+            htmlFor="nationalId"
+            hint="Sin guiones. También aceptamos DIMEX."
+            required
+          >
+            <Input
+              id="nationalId"
+              value={nationalId}
+              onChange={(e) => setNationalId(e.target.value)}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="1 2345 6789"
+              maxLength={16}
+              disabled={submitting}
+              required
+            />
+          </Field>
+
+          <Field
+            label="Teléfono"
+            htmlFor="phone"
+            hint="Opcional. Solo para contactarte sobre tus recompensas."
+          >
+            <Input
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="8888 7777"
+              maxLength={15}
+              disabled={submitting}
+            />
+          </Field>
 
           {error && (
             <Alert tone={error.code === "member_exists" ? "info" : "danger"}>
@@ -96,15 +122,16 @@ export function RegisterForm() {
               {error.code === "member_exists" && (
                 <>
                   {" "}
-                  <Link href="/loyalty" className="font-bold underline underline-offset-2">
-                    Consultar mis puntos
+                  <Link href="/account" className="font-bold underline underline-offset-2">
+                    Iniciá sesión para verla
                   </Link>
                 </>
               )}
             </Alert>
           )}
 
-          <Button variant="accent"
+          <Button
+            variant="accent"
             type="submit"
             loading={submitting}
             trailingIcon={<ArrowRight />}
@@ -118,9 +145,9 @@ export function RegisterForm() {
       </Surface>
 
       <p className="text-center text-sm text-expresso/60">
-        ¿Ya tenés tarjeta?{" "}
-        <Link href="/loyalty" className="font-bold text-coffee-fruit hover:underline">
-          Consultá tus puntos
+        ¿Ya tenés cuenta?{" "}
+        <Link href="/account" className="font-bold text-coffee-fruit hover:underline">
+          Iniciá sesión
         </Link>
       </p>
     </div>

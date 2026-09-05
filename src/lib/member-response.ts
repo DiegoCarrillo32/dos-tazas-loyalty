@@ -16,6 +16,7 @@ export function toMemberCard(row: Record<string, unknown>): MemberCard {
     nationalId: String(row.national_id),
     pointsBalance: Number(row.points_balance ?? 0),
     tier: row.tier === "member" ? "member" : "basic",
+    linked: Boolean(row.linked),
     qrPayload: signCardToken(cardToken),
   };
 }

@@ -7,8 +7,13 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# Every env variant, including backups. `.env*.local` alone does NOT match
+# `.env.local.bak`, and those backups carry the production Supabase key and the
+# LOYALTY_QR_SECRET — the value that lets anyone mint a valid loyalty card.
 .env
-.env*.local
+.env.*
+!.env.example
+*.bak
 .vercel
 *.tsbuildinfo
 next-env.d.ts

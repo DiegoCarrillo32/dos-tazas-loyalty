@@ -58,6 +58,7 @@ export function StaffLoginForm() {
           <Field label="Correo" htmlFor="email" required>
             <Input
               id="email"
+              maxLength={254}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -71,6 +72,7 @@ export function StaffLoginForm() {
           <Field label="Contraseña" htmlFor="password" required>
             <Input
               id="password"
+              maxLength={128}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

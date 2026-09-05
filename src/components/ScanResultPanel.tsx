@@ -168,6 +168,7 @@ export function ScanResultPanel({
           <Field label="Monto de la compra" htmlFor="amount">
             <Input
               id="amount"
+              maxLength={9}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               inputMode="numeric"
@@ -201,7 +202,11 @@ export function ScanResultPanel({
       </Surface>
 
       <Surface>
-        <SurfaceHeader title="Canjear recompensa" className="mb-4" />
+        <SurfaceHeader
+          title="Canjear recompensa"
+          description={`${result.fullName.split(" ")[0]} tiene ${result.pointsBalance} puntos.`}
+          className="mb-4"
+        />
 
         <ul className="space-y-2">
           {result.rewards.map((reward) => (
