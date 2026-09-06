@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ScannerWorkspace } from "@/components/ScannerWorkspace";
+import { getColonesPerPoint } from "@/lib/loyalty-settings";
 import { createClient } from "@/lib/supabase/server";
 import { Alert } from "@/design-system";
 
@@ -36,5 +37,10 @@ export default async function ScannerPage() {
     );
   }
 
-  return <ScannerWorkspace />;
+  // Fetched here rather than inside the panel: the barista's preview of
+  // "₡3.500 = +7 puntos" has to match what earn_points() will actually award,
+  // and that comes from the same row.
+  const colonesPerPoint = await getColonesPerPoint();
+
+  return <ScannerWorkspace colonesPerPoint={colonesPerPoint} />;
 }

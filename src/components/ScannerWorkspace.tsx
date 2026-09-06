@@ -16,7 +16,7 @@ type Phase =
   | { name: "result"; result: ScanResult }
   | { name: "error"; message: string };
 
-export function ScannerWorkspace() {
+export function ScannerWorkspace({ colonesPerPoint }: { colonesPerPoint: number }) {
   const [phase, setPhase] = useState<Phase>({ name: "scanning" });
 
   async function handleScan(input: { payload: string } | { nationalId: string }) {
@@ -43,6 +43,7 @@ export function ScannerWorkspace() {
     return (
       <ScanResultPanel
         result={phase.result}
+        colonesPerPoint={colonesPerPoint}
         onUpdated={(next) => setPhase({ ...phase, result: next })}
         onDone={reset}
       />

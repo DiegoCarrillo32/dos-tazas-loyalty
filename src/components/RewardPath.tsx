@@ -1,6 +1,6 @@
 import { Check, Coffee, Lock, Sparkles } from "lucide-react";
 
-import { formatPoints } from "@/lib/format";
+import { formatColones, formatPoints } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Reward } from "@/types";
 import { NextRewardHeadline } from "./NextRewardHeadline";
@@ -20,11 +20,18 @@ export function RewardPath({
   rewards,
   balance,
   tier = "member",
+  colonesPerPoint,
 }: {
   rewards: Reward[];
   /** Omitted for the signed-out catalogue, where there is no progress to show. */
   balance?: number;
   tier?: "basic" | "member";
+  /**
+   * The live rate from `loyalty_settings`. Only the signed-out catalogue quotes
+   * it — someone already earning can see their own progress instead — so it is
+   * optional and the footnote is dropped when a caller has no rate to show.
+   */
+  colonesPerPoint?: number;
 }) {
   if (rewards.length === 0) {
     return <p className="text-sm text-expresso/50">Todavía no hay recompensas disponibles.</p>;
@@ -140,9 +147,9 @@ export function RewardPath({
         </p>
       )}
 
-      {!showProgress && (
+      {!showProgress && colonesPerPoint !== undefined && (
         <p className="text-center text-xs text-expresso/55">
-          Acumulá 1 punto por cada ₡1.000 de compra.
+          Acumulá 1 punto por cada {formatColones(colonesPerPoint)} de compra.
         </p>
       )}
 

@@ -20,15 +20,19 @@ import { cn } from "@/lib/utils";
 import type { PointsMutationResult, Reward, ScanResult } from "@/types";
 import { LedgerList } from "./LedgerList";
 
-/** Kept in step with loyalty_settings.colones_per_point (default ₡1.000 = 1 punto). */
-const COLONES_PER_POINT = 1000;
-
 export function ScanResultPanel({
   result,
+  colonesPerPoint,
   onUpdated,
   onDone,
 }: {
   result: ScanResult;
+  /**
+   * Read from `loyalty_settings` by the page. The preview below is a promise to
+   * the customer standing at the till, so it has to be computed with the same
+   * rate earn_points() divides by — not a copy of it that drifts.
+   */
+  colonesPerPoint: number;
   onUpdated: (next: ScanResult) => void;
   onDone: () => void;
 }) {
@@ -39,7 +43,7 @@ export function ScanResultPanel({
 
   const parsedAmount = Number(amount.replace(/[^\d]/g, ""));
   const previewPoints = Number.isFinite(parsedAmount)
-    ? Math.floor(parsedAmount / COLONES_PER_POINT)
+    ? Math.floor(parsedAmount / colonesPerPoint)
     : 0;
 
   /**
@@ -158,7 +162,7 @@ export function ScanResultPanel({
       <Surface>
         <SurfaceHeader
           title="Acumular puntos"
-          description={`1 punto por cada ${formatColones(COLONES_PER_POINT)}`}
+          description={`1 punto por cada ${formatColones(colonesPerPoint)}`}
           className="mb-4"
         />
 

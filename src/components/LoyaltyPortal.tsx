@@ -2,6 +2,7 @@ import { CreditCard, LogIn } from "lucide-react";
 import Link from "next/link";
 
 import { Surface, SurfaceHeader, buttonVariants } from "@/design-system";
+import { formatColones } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Reward } from "@/types";
 import { PageHeader } from "./PageHeader";
@@ -16,12 +17,19 @@ import { RewardPath } from "./RewardPath";
  * and points. Now a balance is visible only to whoever holds the card or is
  * signed in to the account it belongs to.
  */
-export function LoyaltyPortal({ rewards }: { rewards: Reward[] }) {
+export function LoyaltyPortal({
+  rewards,
+  colonesPerPoint,
+}: {
+  rewards: Reward[];
+  /** From `loyalty_settings`, so a rate change reaches the copy on its own. */
+  colonesPerPoint: number;
+}) {
   return (
     <div className="space-y-6">
       <PageHeader
         title="Club de Lealtad"
-        subtitle="Acumulá 1 punto por cada ₡1.000 y canjealos por café."
+        subtitle={`Acumulá 1 punto por cada ${formatColones(colonesPerPoint)} y canjealos por café.`}
       />
 
       <Surface>
@@ -59,7 +67,7 @@ export function LoyaltyPortal({ rewards }: { rewards: Reward[] }) {
           description="Desde tu primer café hasta una bolsa de grano."
           className="mb-4"
         />
-        <RewardPath rewards={rewards} />
+        <RewardPath rewards={rewards} colonesPerPoint={colonesPerPoint} />
       </Surface>
 
       <Surface className="bg-warm-roast/5">
